@@ -26,7 +26,11 @@
             <entrypoint>
               <shell>bash</shell>
               <option>-c</option>
-              <arg>apt-get update && apt-get install -y curl && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs && npm install && npm start</arg>
+              <arg>apt-get update &amp;&amp; apt-get install -y curl</arg>
+              <arg>&amp;&amp; curl -fsSL https://deb.nodesource.com/setup_16.x | bash -</arg>
+              <arg>&amp;&amp; apt-get install -y nodejs</arg>
+              <arg>&amp;&amp; npm install</arg>
+              <arg>&amp;&amp; npm start</arg>
             </entrypoint>
             <ports>
               <port>3000</port>
