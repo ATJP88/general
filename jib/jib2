@@ -1,0 +1,55 @@
+
+
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <version>2.5.4</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>repackage</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+<build>
+    <plugins>
+        <plugin>
+            <groupId>com.google.cloud.tools</groupId>
+            <artifactId>jib-maven-plugin</artifactId>
+            <version>3.2.0</version>
+            <configuration>
+                <from>
+                    <image>azul/zulu-openjdk:17-ubuntu</image>
+                </from>
+                <to>
+                    <image>my-azul-java-node-app</image>
+                </to>
+                <containerizingMode>packaged</containerizingMode>
+                <container>
+                    <entrypoint>
+                        <shell>bash</shell>
+                        <option>-c</option>
+                        <arg>apt-get update &amp;&amp; apt-get install -y curl</arg>
+                        <arg>&amp;&amp; curl -fsSL https://deb.nodesource.com/setup_16.x | bash -</arg>
+                        <arg>&amp;&amp; apt-get install -y nodejs</arg>
+                        <arg>&amp;&amp; npm install</arg>
+                        <arg>&amp;&amp; npm start</arg>
+                    </entrypoint>
+                    <environment>
+                        <SPRING_PROFILES_ACTIVE>dev3</SPRING_PROFILES_ACTIVE>
+                        <CMIS_USERID>your_username</CMIS_USERID>
+                        <CMIS_PASSWORD>your_password</CMIS_PASSWORD>
+                    </environment>
+                    <ports>
+                        <port>3000</port>
+                    </ports>
+                </container>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
