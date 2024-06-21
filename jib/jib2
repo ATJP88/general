@@ -1,3 +1,44 @@
+<build>
+    <plugins>
+        <plugin>
+            <groupId>com.google.cloud.tools</groupId>
+            <artifactId>jib-maven-plugin</artifactId>
+            <version>3.2.0</version>
+            <configuration>
+                <from>
+                    <image>azul/zulu-openjdk:17-ubuntu</image>
+                </from>
+                <to>
+                    <image>my-azul-java-node-app</image>
+                </to>
+                <containerizingMode>packaged</containerizingMode>
+                <extraDirectories>
+                    <paths>
+                        <path>
+                            <from>${project.build.directory}</from>
+                            <into>/app</into>
+                        </path>
+                    </paths>
+                </extraDirectories>
+                <container>
+                    <entrypoint>
+                        <shell>bash</shell>
+                        <option>-c</option>
+                        <arg>java -jar /app/${project.build.finalName}.jar</arg>
+                    </entrypoint>
+                    <environment>
+                        <SPRING_PROFILES_ACTIVE>dev3</SPRING_PROFILES_ACTIVE>
+                        <CMIS_USERID>your_username</CMIS_USERID>
+                        <CMIS_PASSWORD>your_password</CMIS_PASSWORD>
+                    </environment>
+                    <ports>
+                        <port>3000</port>
+                    </ports>
+                </container>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
 
 
 <build>
