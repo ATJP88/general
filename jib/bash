@@ -9,7 +9,16 @@ maven_build() {
     echo "Mvn Build started for $API_NAME"
 
     pwd
-    cd root
+
+    # Ensure the script is running from the correct base directory
+    BASE_DIR="/c/Users/45239669/Documents/FDS/fds26_06/federated-content-search/root"
+    
+    if [ ! -d "$BASE_DIR" ]; then
+        echo "Base directory $BASE_DIR does not exist. Exiting."
+        exit 1
+    fi
+    
+    cd "$BASE_DIR"
     pwd
 
     export JAVA_HOME=/opt/java/zulu21.34.19-ca-jdk21.0.3-linux_x64
@@ -21,8 +30,12 @@ maven_build() {
 
     ls -lrta
 
-    cd $API_NAME
+    if [ ! -d "$API_NAME" ]; then
+        echo "API directory $API_NAME does not exist. Exiting."
+        exit 1
+    fi
 
+    cd "$API_NAME"
     ls -lrta
 
     mvn -version
