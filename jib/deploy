@@ -1,0 +1,204 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cmis-credentials
+  namespace: fdscs-dev
+type: Opaque
+data:
+  CMIS_USERID: SEJBUC1IS0dMVUVJQ0MxMERC
+  CMIS_PASSWORD: cnU5Wjh0UQ==
+
+
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fdscs-dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregate-api
+  namespace: fdscs-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aggregate-api
+  template:
+    metadata:
+      labels:
+        app: aggregate-api
+    spec:
+      containers:
+      - name: aggregate-api
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/aggregate:1.0
+        ports:
+        - containerPort: 7000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregate-api
+  namespace: fdscs-dev
+spec:
+  selector:
+    app: aggregate-api
+  ports:
+  - protocol: TCP
+    port: 7000
+    targetPort: 7000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filenet-api
+  namespace: fdscs-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: filenet-api
+  template:
+    metadata:
+      labels:
+        app: filenet-api
+    spec:
+      containers:
+      - name: filenetapi-1
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/filenetapi:1.0
+        ports:
+        - containerPort: 8001
+        env:
+        - name: SPRING_PROFILE
+          value: dev1
+        - name: CMIS_USERID
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_USERID
+        - name: CMIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_PASSWORD
+      - name: filenetapi-2
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/filenetapi:1.0
+        ports:
+        - containerPort: 8002
+        env:
+        - name: SPRING_PROFILE
+          value: dev2
+        - name: CMIS_USERID
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_USERID
+        - name: CMIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_PASSWORD
+      - name: filenetapi-3
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/filenetapi:1.0
+        ports:
+        - containerPort: 8003
+        env:
+        - name: SPRING_PROFILE
+          value: dev3
+        - name: CMIS_USERID
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_USERID
+        - name: CMIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: filenetapi-1
+  namespace: fdscs-dev
+spec:
+  selector:
+    app: filenet-api
+  ports:
+  - protocol: TCP
+    port: 8001
+    targetPort: 8001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: filenetapi-2
+  namespace: fdscs-dev
+spec:
+  selector:
+    app: filenet-api
+  ports:
+  - protocol: TCP
+    port: 8002
+    targetPort: 8002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: filenetapi-3
+  namespace: fdscs-dev
+spec:
+  selector:
+    app: filenet-api
+  ports:
+  - protocol: TCP
+    port: 8003
+    targetPort: 8003
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arc
+  namespace: fdscs-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arc
+  template:
+    metadata:
+      labels:
+        app: arc
+    spec:
+      containers:
+      - name: arc
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/arcapi:6.1
+        ports:
+        - containerPort: 8101
+        env:
+        - name: SPRING_PROFILE
+          value: dev1
+        - name: CMIS_USERID
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_USERID
+        - name: CMIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cmis-credentials
+              key: CMIS_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arc
+  namespace: fdscs-dev
+spec:
+  selector:
+    app: arc
+  ports:
+  - protocol: TCP
+    port: 8101
+    targetPort: 8101
