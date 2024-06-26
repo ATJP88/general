@@ -2,9 +2,10 @@
 
 set -e
 
-# Function for maven build
-maven_build() {
+# Function for maven build and Docker run
+maven_build_and_docker_run() {
     API_NAME=$1
+    IMAGE_TAG=$2
 
     echo "Mvn Build started for $API_NAME"
 
@@ -39,29 +40,38 @@ maven_build() {
     ls -lrta
 
     mvn -version
-    mvn clean compile -Dimage.tag=v1.1
-    mvn clean package -Dimage.tag=v1.1
-    mvn clean package jib:dockerBuild -Dimage.tag=v1.1
+    mvn clean compile -Dimage.tag=$IMAGE_TAG
+    mvn clean package -Dimage.tag=$IMAGE_TAG
+    mvn clean package jib:dockerBuild -Dimage.tag=$IMAGE_TAG
+
+    echo "Running Docker containers for $API_NAME"
+
+    # Run Docker containers for dev1, dev2, dev3
+    for i in 1 2 3; do
+        docker run -itd --name "${API_NAME}-dev${i}" -p 800${i}:800${i} --network fds -e spring_profile="dev${i}" -e CMIS_userid="Thiru" -e CMIS_password="Thiru" "${IMAGE_TAG}"
+    done
+
+    echo "Docker containers for $API_NAME are up and running."
 }
 
-# Stage: maven build-aggregate-api
-stage_maven_build_aggregate_api() {
-    maven_build "aggregate-api"
+# Stage: maven build and Docker run for aggregate-api
+stage_maven_build_and_docker_run_aggregate_api() {
+    maven_build_and_docker_run "aggregate-api" "aggregate-api:v1.1"
 }
 
-# Stage: maven build-filenet-api
-stage_maven_build_filenet_api() {
-    maven_build "filenet-api"
+# Stage: maven build and Docker run for filenet-api
+stage_maven_build_and_docker_run_filenet_api() {
+    maven_build_and_docker_run "filenet-api" "filenet-api:v1.1"
 }
 
-# Stage: maven build-arc-api
-stage_maven_build_arc_api() {
-    maven_build "arc-api"
+# Stage: maven build and Docker run for arc-api
+stage_maven_build_and_docker_run_arc_api() {
+    maven_build_and_docker_run "arc-api" "arc-api:v1.1"
 }
 
 # Execute stages
-stage_maven_build_aggregate_api
-stage_maven_build_filenet_api
-stage_maven_build_arc_api
+stage_maven_build_and_docker_run_aggregate_api
+stage_maven_build_and_docker_run_filenet_api
+stage_maven_build_and_docker_run_arc_api
 
 echo "All stages completed successfully."
