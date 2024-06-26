@@ -6,6 +6,9 @@ set -e
 maven_build_and_docker_run() {
     API_NAME=$1
     IMAGE_TAG=$2
+    PORT=$3
+    RUN_DEV_CONTAINERS=$4
+    ENV_VARS=$5
 
     echo "Mvn Build started for $API_NAME"
 
@@ -44,29 +47,37 @@ maven_build_and_docker_run() {
     mvn clean package -Dimage.tag=$IMAGE_TAG
     mvn clean package jib:dockerBuild -Dimage.tag=$IMAGE_TAG
 
-    echo "Running Docker containers for $API_NAME"
+    echo "Running Docker container for $API_NAME"
 
-    # Run Docker containers for dev1, dev2, dev3
-    for i in 1 2 3; do
-        docker run -itd --name "${API_NAME}-dev${i}" -p 800${i}:800${i} --network fds -e spring_profile="dev${i}" -e CMIS_userid="Thiru" -e CMIS_password="Thiru" "${IMAGE_TAG}"
-    done
+    # Run Docker container
+    if [ "$RUN_DEV_CONTAINERS" = true ]; then
+        for i in 1 2 3; do
+            docker run -itd --name "${API_NAME}-dev${i}" -p 800${i}:800${i} --network fds -e spring_profile="dev${i}" -e CMIS_userid="Thiru" -e CMIS_password="Thiru" "${IMAGE_TAG}"
+        done
+    else
+        if [ -n "$ENV_VARS" ]; then
+            docker run -itd --name "${API_NAME}" -p ${PORT}:${PORT} --network fds ${ENV_VARS} "${IMAGE_TAG}"
+        else
+            docker run -itd --name "${API_NAME}" -p ${PORT}:${PORT} --network fds "${IMAGE_TAG}"
+        fi
+    fi
 
-    echo "Docker containers for $API_NAME are up and running."
+    echo "Docker container for $API_NAME is up and running."
 }
 
 # Stage: maven build and Docker run for aggregate-api
 stage_maven_build_and_docker_run_aggregate_api() {
-    maven_build_and_docker_run "aggregate-api" "aggregate-api:v1.1"
+    maven_build_and_docker_run "aggregate-api" "aggregate-api:v1.1" 7000 false ""
 }
 
 # Stage: maven build and Docker run for filenet-api
 stage_maven_build_and_docker_run_filenet_api() {
-    maven_build_and_docker_run "filenet-api" "filenet-api:v1.1"
+    maven_build_and_docker_run "filenet-api" "filenet-api:v1.1" 0 true ""
 }
 
 # Stage: maven build and Docker run for arc-api
 stage_maven_build_and_docker_run_arc_api() {
-    maven_build_and_docker_run "arc-api" "arc-api:v1.1"
+    maven_build_and_docker_run "arc-api" "arc-api:v1.1" 8101 false "-e spring_profile=dev -e CMIS_userid=Thiru -e CMIS_password=Thiru"
 }
 
 # Execute stages
