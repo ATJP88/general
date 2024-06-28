@@ -1,0 +1,78 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>ui-project</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <build>
+        <plugins>
+            <!-- Plugin to run npm install -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.12.0</version>
+                <executions>
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v14.17.0</nodeVersion>
+                            <npmVersion>6.14.13</npmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Jib Maven Plugin -->
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>3.1.4</version>
+                <configuration>
+                    <from>
+                        <image>nexus3.systems.uk.hsbc:18080/hsbc-3231794-gdtdatac-devops/java/azul-java-fre-ubuntu-17:17.48-dev</image>
+                    </from>
+                    <to>
+                        <image>nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/ui:${image.tag}</image>
+                    </to>
+                    <container>
+                        <appRoot>/app</appRoot>
+                        <ports>
+                            <port>3000</port>
+                        </ports>
+                        <entrypoint>
+                            <arg>/bin/sh</arg>
+                            <arg>-c</arg>
+                            <arg>exec java -jar /app/your-ui-app.jar</arg>
+                        </entrypoint>
+                        <extraClasspath>
+                            <arg>/dockerResources</arg>
+                        </extraClasspath>
+                    </container>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
