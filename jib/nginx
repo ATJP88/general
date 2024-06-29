@@ -1,0 +1,86 @@
+version: '3'
+services:
+  aggregate-api:
+    image: aggregate-api-image
+    ports:
+      - "7000:7000"
+
+  filenetapi-1:
+    image: filenet-api-image
+    environment:
+      - ENV_VAR=value
+    ports:
+      - "8001:8001"
+
+  arc:
+    image: arc-api-image
+    environment:
+      - ENV_VAR=value
+    ports:
+      - "8101:8101"
+
+
+events { }
+
+http {
+    server {
+        listen 80;
+
+        location /aggregate-api/ {
+            proxy_pass http://aggregate-api:7000/;
+        }
+
+        location /filenetapi-1/ {
+            proxy_pass http://filenetapi-1:8001/;
+        }
+
+        location /arc/ {
+            proxy_pass http://arc:8101/;
+        }
+    }
+}
+
+
+version: '3'
+services:
+  aggregate-api:
+    image: aggregate-api-image
+    ports:
+      - "7000"
+    networks:
+      - app-network
+
+  filenetapi-1:
+    image: filenet-api-image
+    environment:
+      - ENV_VAR=value
+    ports:
+      - "8001"
+    networks:
+      - app-network
+
+  arc:
+    image: arc-api-image
+    environment:
+      - ENV_VAR=value
+    ports:
+      - "8101"
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - aggregate-api
+      - filenetapi-1
+      - arc
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
