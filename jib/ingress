@@ -1,0 +1,91 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fds-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: aggregate.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aggregate-api
+            port:
+              number: 7000
+  - host: filenetapi-1.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: filenetapi-1
+            port:
+              number: 8001
+  - host: filenetapi-2.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: filenetapi-2
+            port:
+              number: 8002
+  - host: filenetapi-3.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: filenetapi-3
+            port:
+              number: 8003
+  - host: arc.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: arc
+            port:
+              number: 8101
+---
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /aggregate-api
+        pathType: Prefix
+        backend:
+          service:
+            name: aggregate-api
+            port:
+              number: 7000
+      - path: /filenetapi-1
+        pathType: Prefix
+        backend:
+          service:
+            name: filenetapi-1
+            port:
+              number: 8001
+      - path: /arc
+        pathType: Prefix
+        backend:
+          service:
+            name: arc
+            port:
+              number: 8101
