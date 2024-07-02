@@ -202,3 +202,61 @@ spec:
   - protocol: TCP
     port: 8101
     targetPort: 8101
+
+
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregate-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aggregate-api
+  template:
+    metadata:
+      labels:
+        app: aggregate-api
+    spec:
+      containers:
+      - name: aggregate-api
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/aggregate:1.0
+        ports:
+        - containerPort: 7000
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: JOURNEY_NAME
+          value: "wpb-kyc"
+        - name: DOCSTORE_NAME_0
+          value: "FS_EMEA_OS"
+        - name: DOCSTORE_URL_0
+          value: "http://filenetapi-1.fdscs-dev:8001"
+        - name: DOCSTORE_NAME_1
+          value: "FS_EMEA_MENA_OS"
+        - name: DOCSTORE_URL_1
+          value: "http://filenetapi-2.fdscs-dev:8002"
+        - name: DOCSTORE_NAME_2
+          value: "FS_EMEA_EU_INT_OS"
+        - name: DOCSTORE_URL_2
+          value: "http://filenetapi-3.fdscs-dev:8003"
+        - name: DOCSTORE_NAME_3
+          value: "HSBC_IDS"
+        - name: DOCSTORE_URL_3
+          value: "http://arc.fdscs-dev:8101"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregate-api
+spec:
+  selector:
+    app: aggregate-api
+  ports:
+  - protocol: TCP
+    port: 7000
+    targetPort: 7000
+
