@@ -260,3 +260,39 @@ spec:
     port: 7000
     targetPort: 7000
 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpine-deployment
+  labels:
+    app: alpine-app
+spec:
+  replicas: 3  # Number of replicas
+  selector:
+    matchLabels:
+      app: alpine-app
+  template:
+    metadata:
+      labels:
+        app: alpine-app
+    spec:
+      containers:
+      - name: alpine-container
+        image: alpine:latest
+        command: ["sh", "-c", "while true; do echo hello; sleep 10;done"]  # Sample command
+        ports:
+        - containerPort: 80  # Define the port the container will listen on
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alpine-service
+spec:
+  selector:
+    app: alpine-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer  # Define service type (LoadBalancer, NodePort, ClusterIP)
