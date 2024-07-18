@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arc
+  template:
+    metadata:
+      labels:
+        app: arc
+    spec:
+      containers:
+      - name: arc
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/arcapi:6.1
+        ports:
+        - containerPort: 8101
+        env:
+        - name: SPRING_PROFILE
+          value: dev1
+        - name: CMIS_USERID
+          value: HBAP-HKGLUEICC101DC
+        - name: CMIS_PASSWORD
+          value: ru9Z8tQ
+        volumeMounts:
+        - name: arc-certificates
+          mountPath: /etc/ssl/certs
+          readOnly: true
+      volumes:
+      - name: arc-certificates
+        secret:
+          secretName: arc-certificates
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arc
+spec:
+  selector:
+    app: arc
+  ports:
+  - protocol: TCP
+    port: 8101
+    targetPort: 8101
