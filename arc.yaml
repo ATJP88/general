@@ -1,0 +1,81 @@
+secret
+kubectl create secret generic arc-certificates --from-file=ca.crt=path/to/ca.crt --from-file=arcapi.jks=path/to/arcapi.jks
+
+
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: arc-certificates-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /etc/kubernetes/arc-certificates
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: arc-certificates-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arc
+  template:
+    metadata:
+      labels:
+        app: arc
+    spec:
+      containers:
+      - name: arc
+        image: nexus3.systems.uk.hsbc:18097/vendor-dev/1635015/arcapi:6.1
+        ports:
+        - containerPort: 8101
+        env:
+        - name: SPRING_PROFILE
+          value: dev1
+        - name: CMIS_USERID
+          value: HBAP-HKGLUEICC101DC
+        - name: CMIS_PASSWORD
+          value: ru9Z8tQ
+        volumeMounts:
+        - name: arc-certificates
+          mountPath: /etc/ssl/certs
+          readOnly: true
+      volumes:
+      - name: arc-certificates
+        persistentVolumeClaim:
+          claimName: arc-certificates-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arc
+spec:
+  selector:
+    app: arc
+  ports:
+  - protocol: TCP
+    port: 8101
+    targetPort: 8101
+---
+
+kubectl create secret generic arc-certificates --from-file=ca.crt=path/to/ca.crt --from-file=arcapi.jks=path/to/arcapi.jks --from-file=anotherapi.jks=path/to/anotherapi.jks
