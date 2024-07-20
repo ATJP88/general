@@ -83,3 +83,34 @@ while IFS= read -r line; do
 done < /tmp/deploy_images.txt
 
 echo "All deployments updated successfully."
+
+
+# Read the deploy_images.txt file
+if [ ! -f /tmp/deploy_images.txt ]; then
+    echo "No images to deploy. Exiting."
+    exit 0
+fi
+
+while read -r line; do
+    API_NAME=$(echo $line | awk '{print $1}')
+    IMAGE_TAG=$(echo $line | awk '{print $2}')
+
+    echo "Updating Kubernetes deployment for $API_NAME to use image $API_NAME:$IMAGE_TAG"
+
+    if [ "$API_NAME" == "aggregate-api" ]; then
+        kubectl set image deployment/deployment-aggregate-api aggregate-api=$CONTAINER_REGISTRY/$API_NAME:$IMAGE_TAG
+        echo "deployment.apps/deployment-aggregate-api image updated"
+    elif [[ "$API_NAME" == "filenet-api" ]]; then
+        for i in {1..5}; do
+            kubectl set image deployment/deployment-filenetapi-$i filenetapi-$i=$CONTAINER_REGISTRY/$API_NAME:$IMAGE_TAG
+            echo "deployment.apps/deployment-filenetapi-$i image updated"
+        done
+    elif [ "$API_NAME" == "arc-api" ]; then
+        kubectl set image deployment/deployment-arc-api arc-api=$CONTAINER_REGISTRY/$API_NAME:$IMAGE_TAG
+        echo "deployment.apps/deployment-arc-api image updated"
+    else
+        echo "Unknown API_NAME: $API_NAME. Skipping."
+    fi
+done < /tmp/deploy_images.txt
+
+echo "All Kubernetes deployments updated successfully."
