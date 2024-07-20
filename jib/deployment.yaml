@@ -37,3 +37,49 @@ fi
 
 echo "GKE deployment completed successfully."
 
+#!/bin/bash
+
+set -e
+
+# Define project and namespace
+NAMESPACE="your-kubernetes-namespace"
+
+# Function to update Kubernetes deployment
+update_k8s_deployment() {
+    DEPLOYMENT_NAME=$1
+    IMAGE_NAME=$2
+    IMAGE_TAG=$3
+    CONTAINER_REGISTRY="nexus3.systems.uk.hsbc:18080/goatech-fds"
+
+    echo "Updating Kubernetes deployment $DEPLOYMENT_NAME to use image $IMAGE_NAME:$IMAGE_TAG"
+
+    kubectl set image deployment/$DEPLOYMENT_NAME $IMAGE_NAME=$CONTAINER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG -n $NAMESPACE
+}
+
+# Read the deploy_images.txt file and update the deployments
+while IFS= read -r line; do
+    API_NAME=$(echo $line | cut -d' ' -f1)
+    IMAGE_TAG=$(echo $line | cut -d' ' -f2)
+
+    case $API_NAME in
+        "aggregate-api")
+            update_k8s_deployment "deployment-aggregate-api" "$API_NAME" "$IMAGE_TAG"
+            ;;
+        "filenet-api")
+            for i in {1..5}; do
+                update_k8s_deployment "deployment-filenetapi-$i" "$API_NAME" "$IMAGE_TAG"
+            done
+            ;;
+        "arc-api")
+            update_k8s_deployment "deployment-arcapi" "$API_NAME" "$IMAGE_TAG"
+            ;;
+        "seeker-ui")
+            update_k8s_deployment "deployment-seekerui" "$API_NAME" "$IMAGE_TAG"
+            ;;
+        *)
+            echo "Unknown API name: $API_NAME"
+            ;;
+    esac
+done < /tmp/deploy_images.txt
+
+echo "All deployments updated successfully."
