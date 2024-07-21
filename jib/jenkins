@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+    environment {
+        CONTAINER_REGISTRY = 'asia-docker.pkg.dev/hsbc-12514600-fdscshk-dev/fdscs'
+        NEXUS_REPO = 'nexus3.systems.uk.hsbc:18080/hsbc-12514600-fdscshk-dev/test'
+        NEXUS_USERNAME = credentials('nexus-username')
+        NEXUS_PASSWORD = credentials('nexus-password')
+        GCP_PROJECT_ID = 'your-gcp-project-id'
+        CLUSTER_NAME = 'your-cluster-name'
+        CLUSTER_ZONE = 'your-cluster-zone'
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+    }
+    stages {
+        stage('Docker Operations') {
+            steps {
+                script {
+                    withEnv(["BUILD_NUMBER=${env.BUILD_NUMBER}"]) {
+                        sh 'bash docker-operations.sh'
+                    }
+                }
+            }
+        }
+        stage('Kubernetes Deployment') {
+            steps {
+                script {
+                    sh 'bash k8s-deployment.sh'
+                }
+            }
+        }
+    }
+}
