@@ -5,10 +5,7 @@ set -e
 # Define variables
 CONTAINER_REGISTRY='asia-docker.pkg.dev/hsbc-12514600-fdscshk-dev/fdscs'
 NEXUS_REPO='nexus3.systems.uk.hsbc:18080/hsbc-12514600-fdscshk-dev/test'
-
-# Ensure Kubernetes context is set correctly
-gcloud config set project your-gcp-project-id
-gcloud container clusters get-credentials your-cluster-name --zone your-cluster-zone
+BUILD_NUMBER=${BUILD_NUMBER:-latest}  # Use provided BUILD_NUMBER or default to 'latest'
 
 # Authenticate Docker to Nexus and GCP Artifact Registry
 echo "$NEXUS_USERNAME" | docker login $NEXUS_REPO --username $NEXUS_USERNAME --password-stdin
@@ -37,24 +34,7 @@ while read -r line; do
     docker push $GCP_IMAGE
 
     echo "Removing local image $NEXUS_IMAGE"
-    docker rmi $NEXUS_IMAGE $GCP_IMAGE
-
-    echo "Updating Kubernetes deployment for $API_NAME to use image $GCP_IMAGE"
-
-    if [ "$API_NAME" == "aggregate-api" ]; then
-        kubectl set image deployment/deployment-aggregate-api aggregate-api=$GCP_IMAGE
-        echo "deployment.apps/deployment-aggregate-api image updated"
-    elif [[ "$API_NAME" == "filenet-api" ]]; then
-        for i in {1..5}; do
-            kubectl set image deployment/deployment-filenetapi-$i filenetapi-$i=$GCP_IMAGE
-            echo "deployment.apps/deployment-filenetapi-$i image updated"
-        done
-    elif [ "$API_NAME" == "arc-api" ]; then
-        kubectl set image deployment/deployment-arc-api arc-api=$GCP_IMAGE
-        echo "deployment.apps/deployment-arc-api image updated"
-    else
-        echo "Unknown API_NAME: $API_NAME. Skipping."
-    fi
+    docker rmi $NEXUS_IMAGE
 done < /tmp/deploy_images.txt
 
-echo "All Kubernetes deployments updated successfully."
+echo "All Docker operations completed successfully."
