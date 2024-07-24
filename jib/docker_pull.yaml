@@ -38,3 +38,51 @@ while read -r line; do
 done < /tmp/deploy_images.txt
 
 echo "All Docker operations completed successfully."
+
+
+#!/bin/bash
+
+set -e
+
+# Define variables
+NEXUS_REPO='nexus3.systems.uk.hsbc:18080/hsbc-12514600-fdscshk-dev/test'
+CONTAINER_REGISTRY='asia-docker.pkg.dev/hsbc-12514600-fdscshk-dev/fdscs'
+BUILD_NUMBER=${BUILD_NUMBER:-latest}  # Use provided BUILD_NUMBER or default to 'latest'
+IMAGE_NAME="ui"
+NEXUS_IMAGE="$NEXUS_REPO/$IMAGE_NAME:v1.$BUILD_NUMBER"
+GCP_IMAGE="$CONTAINER_REGISTRY/$IMAGE_NAME:v1.$BUILD_NUMBER"
+
+# Ensure Kubernetes context is set correctly
+gcloud config set project your-gcp-project-id
+gcloud container clusters get-credentials your-cluster-name --zone your-cluster-zone
+
+# Authenticate Docker to Nexus and GCP Artifact Registry
+echo "$NEXUS_USERNAME" | docker login $NEXUS_REPO --username $NEXUS_USERNAME --password-stdin
+gcloud auth configure-docker $CONTAINER_REGISTRY
+
+# Build the Docker image
+echo "Building Docker image for $IMAGE_NAME"
+docker build -t $NEXUS_IMAGE .
+
+# Push the Docker image to Nexus
+echo "Pushing image $NEXUS_IMAGE to Nexus"
+docker push $NEXUS_IMAGE
+
+# Tag and push the image to GCP Artifact Registry
+echo "Tagging image as $GCP_IMAGE"
+docker tag $NEXUS_IMAGE $GCP_IMAGE
+
+echo "Pushing image to GCP Artifact Registry"
+docker push $GCP_IMAGE
+
+# Remove the local Nexus image to save space
+echo "Removing local image $NEXUS_IMAGE"
+docker rmi $NEXUS_IMAGE
+
+# Update the Kubernetes deployment
+echo "Updating Kubernetes deployment for $IMAGE_NAME to use image $GCP_IMAGE"
+kubectl set image deployment/deployment-ui ui=$GCP_IMAGE -n fdscs-dev
+echo "deployment.apps/deployment-ui image updated"
+
+echo "All operations completed successfully."
+
