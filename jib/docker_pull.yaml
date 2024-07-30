@@ -140,3 +140,22 @@ while read -r line; do
 done < /tmp/deploy_images.txt
 
 echo "All images built and pushed successfully."
+
+
+# Read the deploy_images.txt file
+if [ ! -f /tmp/deploy_images.txt ]; then
+    echo "No images to deploy. Exiting."
+    exit 0
+fi
+
+echo "Reading deploy_images.txt file"
+
+# Loop through each line in the deploy_images.txt
+while read -r line; do
+    echo "Processing line: $line"
+    API_NAME=$(echo $line | awk '{print $1}')
+    echo "API_NAME: $API_NAME"
+    build_and_push_image $API_NAME
+done < /tmp/deploy_images.txt
+
+echo "All images built and pushed successfully."
