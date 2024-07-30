@@ -159,3 +159,71 @@ while read -r line; do
 done < /tmp/deploy_images.txt
 
 echo "All images built and pushed successfully."
+
+
+
+#!/bin/bash
+
+set -e
+
+# Define variables
+BASEDIR="/path/to/your/base/dir"  # Update this path accordingly
+NEXUS_REPO='nexus3.systems.uk.hsbc:18080/hsbc-12514600-fdscshk-dev/test'
+CONTAINER_REGISTRY='asia-docker.pkg.dev/hsbc-12514600-fdscshk-dev/fdscs'
+BUILD_NUMBER=${BUILD_NUMBER:-latest}  # Use provided BUILD_NUMBER or default to 'latest'
+TARGET_API="seekerui"
+
+# Authenticate Docker to Nexus and GCP Artifact Registry
+echo "Authenticating Docker to Nexus and GCP Artifact Registry"
+echo "$NEXUS_USERNAME" | docker login $NEXUS_REPO --username $NEXUS_USERNAME --password-stdin
+gcloud auth configure-docker $CONTAINER_REGISTRY
+
+# Function to build and push Docker images
+build_and_push_image() {
+    API_NAME=$1
+    DOCKERFILE_PATH="$BASEDIR/$API_NAME/Dockerfile"
+
+    # Build Docker image
+    echo "Building Docker image for $API_NAME from $DOCKERFILE_PATH"
+    docker build -t "$API_NAME:$BUILD_NUMBER" -f "$DOCKERFILE_PATH" "$BASEDIR/$API_NAME"
+
+    # Tag and push image to Nexus
+    NEXUS_IMAGE="$NEXUS_REPO/$API_NAME:$BUILD_NUMBER"
+    echo "Tagging and pushing image to Nexus: $NEXUS_IMAGE"
+    docker tag "$API_NAME:$BUILD_NUMBER" "$NEXUS_IMAGE"
+    docker push "$NEXUS_IMAGE"
+
+    # Tag and push image to GCP Artifact Registry
+    GCP_IMAGE="$CONTAINER_REGISTRY/$API_NAME:$BUILD_NUMBER"
+    echo "Tagging and pushing image to GCP Artifact Registry: $GCP_IMAGE"
+    docker tag "$API_NAME:$BUILD_NUMBER" "$GCP_IMAGE"
+    docker push "$GCP_IMAGE"
+
+    # Remove local image
+    echo "Removing local image $NEXUS_IMAGE"
+    docker rmi "$NEXUS_IMAGE"
+    docker rmi "$GCP_IMAGE"
+}
+
+# Read the deploy_images.txt file
+if [ ! -f /tmp/deploy_images.txt ]; then
+    echo "No images to deploy. Exiting."
+    exit 0
+fi
+
+echo "Reading deploy_images.txt file"
+
+# Loop through each line in the deploy_images.txt
+while read -r line; do
+    echo "Processing line: $line"
+    API_NAME=$(echo $line | awk '{print $1}')
+    echo "API_NAME: $API_NAME"
+
+    if [ "$API_NAME" == "$TARGET_API" ]; then
+        build_and_push_image $API_NAME
+    else
+        echo "Skipping API_NAME: $API_NAME"
+    fi
+done < /tmp/deploy_images.txt
+
+echo "All images built and pushed successfully."
