@@ -1,0 +1,175 @@
+pipeline {
+    agent {
+        label "gce-fdscs-jenkinsagent-prod"
+    }
+
+    parameters {
+        string(name: "CR_NUMBER", defaultValue: "", description: 'Enter the Change Request number', trim: true)
+        booleanParam(name: "Deploy_Aggregate_api", defaultValue: false, description: 'Choose this to deploy aggregate-api to prod')
+        string(name: "Aggregate_api_IMAGE_TAG", defaultValue: "", description: 'Enter the aggregate-api image tag for prod promotion', trim: true)
+        booleanParam(name: "Deploy_Filenet_api", defaultValue: false, description: 'Choose this to deploy filenet-api to prod')
+        string(name: "Filenet_api_IMAGE_TAG", defaultValue: "", description: 'Enter the filenet-api image tag for prod promotion', trim: true)
+        booleanParam(name: "Deploy_Arc_api", defaultValue: false, description: 'Choose this to deploy arc-api to prod')
+        string(name: "Arc_api_IMAGE_TAG", defaultValue: "", description: 'Enter the arc-api image tag for prod promotion', trim: true)
+    }
+
+    environment {
+        GITHUB_TOKEN = credentials("fdscsprod")
+        SAST_CONFIG_ID = "1nxep9VXRT1LSK74QcQef72HO"
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        GIT_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+    }
+
+    stages {
+        stage('Initiate Release') {
+            steps {
+                script {
+                    // Check CR is not null
+                    if (!params.CR_NUMBER) {
+                        throw new Exception("CR Number is mandatory")
+                    }
+
+                    // Get and write deployment details to txt
+                    def deployDetails = []
+                    if (params.Deploy_Aggregate_api) {
+                        deployDetails.add("aggregate-api ${params.Aggregate_api_IMAGE_TAG}")
+                    }
+                    if (params.Deploy_Filenet_api) {
+                        deployDetails.add("filenet-api ${params.Filenet_api_IMAGE_TAG}")
+                    }
+                    if (params.Deploy_Arc_api) {
+                        deployDetails.add("arc-api ${params.Arc_api_IMAGE_TAG}")
+                    }
+
+                    if (deployDetails) {
+                        writeFile(file: '/tmp/deploy_images.txt', text: deployDetails.join("\n"))
+                        sh 'cat /tmp/deploy_images.txt'
+                    }
+                }
+            }
+        }
+
+        stage('GIT Checkout') {
+            steps {
+                echo "GIT Checkout"
+                git branch: 'docker-jib', credentialsId: 'fdscsprod', url: 'https://aln-github.systems.uk.hsbc/goa-federated-doc-search/federated-content-search.git'
+                sh 'ls -lrtal'
+                sh 'chmod 777'
+                echo "${GIT_COMMIT}"
+            }
+        }
+
+        stage('Image Promotion to Prod GCR') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'NEXUS_REPO', passwordVariable: 'USERPASS', usernameVariable: 'USERLOGIN')]) {
+                        sh """
+                        chmod 777 /jenkins/prod/docker_prod_promote.sh
+                        /jenkins/prod/docker_prod_promote.sh
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+#!/bin/bash
+
+set -e
+
+# Define variables
+CONTAINER_REGISTRY="asia-docker.pkg.dev/hsbc-12514600-fdscshk-prod/fdscs"
+NEXUS_REPO="nexus3.systems.uk.hsbc:18080/hsbc-12514600-goatech-fdscs"
+
+# Prune old images
+docker image prune -a --filter "until=48h"
+
+# Authenticate to GCP
+gcloud config unset auth/impersonate_service_account
+gsutil cp gs://hsbc-12514600-fdscshk-prod-key-management/gce-stage3-image-builder/gce-stage3-image-builder.json /root/.ssh/terraformcreds/gce-stage3-image-builder.json
+gcloud auth activate-service-account gce-stage3-image-builder@hsbc-12514600-fdscshk-prod.iam.gserviceaccount.com --key-file=/root/.ssh/terraformcreds/gce-stage3-image-builder.json
+
+# Authenticate Docker to Nexus and GCP Artifact Registry
+echo "$USERPASS" | docker login $NEXUS_REPO --username $USERLOGIN --password-stdin
+cat /root/.ssh/terraformcreds/gce-stage3-image-builder.json | docker login -u _json_key --password-stdin https://asia-docker.pkg.dev
+
+# Read the deploy_images.txt file
+if [ ! -f /tmp/deploy_images.txt ]; then
+    echo "No images to deploy. Exiting."
+    exit 0
+fi
+
+while read -r line; do
+    API_NAME=$(echo $line | awk '{print $1}')
+    IMAGE_TAG=$(echo $line | awk '{print $2}')
+
+    NEXUS_IMAGE="$NEXUS_REPO/$API_NAME:$IMAGE_TAG"
+    GCP_IMAGE="$CONTAINER_REGISTRY/$API_NAME:$IMAGE_TAG"
+
+    echo "Pulling image $NEXUS_IMAGE from Nexus"
+    docker pull $NEXUS_IMAGE
+
+    echo "Tagging image as $GCP_IMAGE"
+    docker tag $NEXUS_IMAGE $GCP_IMAGE
+
+    echo "Pushing image to GCP Artifact Registry"
+    docker push $GCP_IMAGE
+
+    echo "Removing local image $NEXUS_IMAGE and $GCP_IMAGE"
+    docker rmi $NEXUS_IMAGE $GCP_IMAGE
+done < /tmp/deploy_images.txt
+
+echo "All Docker operations completed successfully."
+
+
+#!/bin/bash
+
+set -e
+
+# Google Cloud project details
+PROJECT_ID="hsbc-12514600-fdscshk-prod"
+CLUSTER_NAME="fdscs-cluster"
+CLUSTER_ZONE="asia-east2"
+NAMESPACE="fdscs-prod"
+CONTAINER_REGISTRY="asia-docker.pkg.dev/hsbc-12514600-fdscshk-prod/fdscs"
+
+# Authentication
+gcloud config unset auth/impersonate_service_account
+gsutil cp gs://hsbc-12514680-fdscshk-prod-key-management/gce-stage3-image-builder/gce-stage3-image-builder.json /root/.ssh/terraformcreds/gce-stage3-image-builder.json
+gcloud auth activate-service-account gce-stage3-image-builder@hsbc-12514600-fdscshk-prod.iam.gserviceaccount.com --key-file=/root/.ssh/terraformcreds/gce-stage3-image-builder.json
+
+# Set up Kubernetes context
+gcloud config set project $PROJECT_ID
+gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $PROJECT_ID
+kubectl config set-context --current --namespace=$NAMESPACE
+
+# Deploy images
+if [ ! -f /tmp/deploy_images.txt ]; then
+    echo "No images to deploy. Exiting."
+    exit 0
+fi
+
+while read -r line; do
+    API_NAME=$(echo $line | awk '{print $1}')
+    IMAGE_TAG=$(echo $line | awk '{print $2}')
+
+    echo "Updating Kubernetes deployment for $API_NAME to use image $API_NAME:$IMAGE_TAG"
+    if [ "$API_NAME" = "aggregate-api" ]; then
+        kubectl set image deployment/deployment-aggregate-api aggregate-api=$CONTAINER_REGISTRY/$API_NAME:$IMAGE_TAG
+        echo "deployment.apps/deployment-aggregate-api image updated"
+    elif [ "$API_NAME" = "filenet-api" ]; then
+        for i in {1..3}; do
+            kubectl set image deployment/deployment-filenet-api-$i filenet-api-$i=$CONTAINER_REGISTRY/$API_NAME:$IMAGE_TAG
+            echo "deployment.apps/deployment-filenet-api-$i image updated"
+        done
+    elif [ "$API_NAME" = "arc-api" ]; then
+        kubectl set image deployment/deployment-arc-api arc-api=$CONTAINER_REGISTRY/$API_NAME:$IMAGE_TAG
+        echo "deployment.apps/deployment-arc-api image updated"
+    else
+        echo "Unknown API NAME: $API_NAME, Skipping."
+    fi
+done < /tmp/deploy_images.txt
+
+echo "All Kubernetes deployments updated successfully."
