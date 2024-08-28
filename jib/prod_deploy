@@ -313,3 +313,75 @@ done < <(tr -d '\r' < /tmp/deploy_images.txt)  # Handle potential Windows line e
 echo "All Docker operations completed successfully."
 
 
+#!/bin/bash
+
+# Define variables
+CONTAINER_REGISTRY="asia-docker.pkg.dev/hsbc-12514600-fdscshk-prod/fdscs"
+NEXUS_REPO="nexus3.systems.uk.hsbc:18080/hsbc-12514600-goatech-fdscs"
+
+# Clean up old images
+docker image prune -a --filter until=48h -f
+
+# Authentication
+gcloud config unset auth/impersonate_service_account
+gsutil cp gs://hsbc-12514600-fdscshk-prod-key-management/gce-stage3-image-builder/gce-stage3-image-builder.json /root/.ssh/terraformcreds/gce-stage3-image-builder.json
+gcloud auth activate-service-account gce-stage3-image-builder@hsbc-12514600-fdscshk-prod.iam.gserviceaccount.com --key-file=/root/.ssh/terraformcreds/gce-stage3-image-builder.json
+
+# Authenticate Docker to Nexus and GCP Artifact Registry
+echo "$USERPASS" | docker login $NEXUS_REPO --username $USERLOGIN --password-stdin
+cat /root/.ssh/terraformcreds/gce-stage3-image-builder.json | docker login -u _json_key --password-stdin https://asia-docker.pkg.dev
+
+# Check if the deploy_images.txt file exists
+DEPLOY_FILE="/tmp/deploy_images.txt"
+if [ ! -f "$DEPLOY_FILE" ]; then
+    echo "No images to deploy. Exiting."
+    exit 0
+fi
+
+# Process each line in the deploy_images.txt file
+while IFS= read -r line || [[ -n "$line" ]]; do
+    # Skip empty lines
+    if [[ -z "$line" ]]; then
+        continue
+    fi
+
+    # Extract API name and image tag
+    API_NAME=$(echo $line | awk '{print $1}')
+    IMAGE_TAG=$(echo $line | awk '{print $2}')
+
+    # Ensure both API name and image tag are not empty
+    if [[ -z "$API_NAME" || -z "$IMAGE_TAG" ]]; then
+        echo "Invalid entry in deploy_images.txt: $line"
+        continue
+    fi
+
+    NEXUS_IMAGE="${NEXUS_REPO}/${API_NAME}:${IMAGE_TAG}"
+    GCP_IMAGE="${CONTAINER_REGISTRY}/${API_NAME}:${IMAGE_TAG}"
+
+    echo "Pulling image $NEXUS_IMAGE from Nexus"
+    if ! docker pull "$NEXUS_IMAGE"; then
+        echo "Failed to pull image $NEXUS_IMAGE. Skipping."
+        continue
+    fi
+
+    echo "Tagging image as $GCP_IMAGE"
+    if ! docker tag "$NEXUS_IMAGE" "$GCP_IMAGE"; then
+        echo "Failed to tag image $NEXUS_IMAGE as $GCP_IMAGE. Skipping."
+        continue
+    fi
+
+    echo "Pushing image to GCP Artifact Registry"
+    if ! docker push "$GCP_IMAGE"; then
+        echo "Failed to push image $GCP_IMAGE. Skipping."
+        continue
+    fi
+
+    echo "Removing local images $NEXUS_IMAGE and $GCP_IMAGE"
+    docker rmi "$NEXUS_IMAGE" "$GCP_IMAGE"
+
+done < "$DEPLOY_FILE"
+
+echo "All Docker operations completed successfully."
+
+
+
