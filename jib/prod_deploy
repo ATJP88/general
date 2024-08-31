@@ -523,3 +523,65 @@ pipeline {
         // Other stages like Git checkout, build, etc.
     }
 }
+
+
+#!/bin/bash
+
+# Define variables
+PROJECT_ID="hsbc-12514600-fdscshk-prod"
+CLUSTER_NAME="fdscs-cluster"
+CLUSTER_ZONE="asia-east2"
+NAMESPACE="fdscs-prod"
+CONTAINER_REGISTRY="asia-docker.pkg.dev/hsbc-12514600-fdscshk-prod/fdscs"
+
+# Authentication and setup
+gcloud config unset auth/impersonate_service_account
+gsutil cp gs://hsbc-12514600-fdscshk-prod-key-management/gce-stage3-image-builder/gce-stage3-image-builder.json /root/.ssh/terraformcreds/gce-stage3-image-builder.json
+gcloud auth activate-service-account gce-stage3-image-builder@${PROJECT_ID}.iam.gserviceaccount.com --key-file=/root/.ssh/terraformcreds/gce-stage3-image-builder.json
+
+echo "Setting load balancer proxies"
+export HTTP_PROXY="http://10.92.7.74:3128"
+export HTTPS_PROXY="http://10.92.7.74:3128"
+
+# Connect to GKE
+gcloud config set project $PROJECT_ID
+gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $PROJECT_ID
+kubectl config set-context --current --namespace=$NAMESPACE
+
+# Deploy images
+if [ ! -f /tmp/deploy_images.txt ]; then
+    echo "No Images to deploy. Exiting."
+    exit 0
+fi
+
+while read -r line; do
+    API_NAME=$(echo $line | awk '{print $1}')
+    IMAGE_TAG=$(echo $line | awk '{print $2}')
+
+    case $API_NAME in
+        "aggregate-api")
+            kubectl set image deployment/deployment-aggregate-api aggregate-api=${CONTAINER_REGISTRY}/${API_NAME}:${IMAGE_TAG}
+            echo "deployment.apps/deployment-aggregate-api image updated"
+            ;;
+        "filenet-api")
+            for i in {1..3}; do
+                kubectl set image deployment/deployment-filenet-api-${i} filenet-api-${i}=${CONTAINER_REGISTRY}/${API_NAME}:${IMAGE_TAG}
+                echo "deployment.apps/deployment-filenet-api-${i} image updated"
+            done
+            ;;
+        "arc-api")
+            kubectl set image deployment/deployment-arc-api arc-api=${CONTAINER_REGISTRY}/${API_NAME}:${IMAGE_TAG}
+            echo "deployment.apps/deployment-arc-api image updated"
+            ;;
+        "seekerui")
+            kubectl set image deployment/deployment-seekerui seekerui=${CONTAINER_REGISTRY}/${API_NAME}:${IMAGE_TAG}
+            echo "deployment.apps/deployment-seekerui image updated"
+            ;;
+        *)
+            echo "Unknown API NAME: $API_NAME, Skipping."
+            ;;
+    esac
+done < /tmp/deploy_images.txt
+
+echo "All Kubernetes deployments updated successfully."
+
