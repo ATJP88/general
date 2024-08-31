@@ -457,3 +457,69 @@ done < "$DEPLOY_FILE"
 
 echo "All Kubernetes deployments updated successfully."
 
+pipeline {
+    agent { label "gce-fdscs-jenkinsagent-prod" }
+
+    parameters {
+        string(name: "CR_NUMBER", defaultValue: "", description: "Enter the Change Request number", trim: true)
+        
+        booleanParam(name: "Deploy_Aggregate_api", defaultValue: false, description: 'Choose this to deploy aggregate-api to prod')
+        string(name: "Aggregate_api_IMAGE_TAG", defaultValue: "", description: 'Enter the aggregate-api image tag for prod promotion', trim: true)
+        
+        booleanParam(name: "Deploy_Filenet_api", defaultValue: false, description: 'Choose this to deploy filenet-api to prod')
+        string(name: "Filenet_api_IMAGE_TAG", defaultValue: "", description: 'Enter the filenet-api image tag for prod promotion', trim: true)
+        
+        booleanParam(name: "Deploy_Arc_api", defaultValue: false, description: 'Choose this to deploy arc-api to prod')
+        string(name: "Arc_api_IMAGE_TAG", defaultValue: "", description: 'Enter the arc-api image tag for prod promotion', trim: true)
+        
+        booleanParam(name: "Deploy_Seekerui", defaultValue: false, description: 'Choose this to deploy seekerui to prod')
+        string(name: "Seekerui_IMAGE_TAG", defaultValue: "", description: "Enter the seekerui image tag for prod promotion", trim: true)
+    }
+
+    environment {
+        GITHUB_TOKEN = credentials("fdscsprod")
+        SAST_CONFIG = "ID1nxep9VXRT1LsK74QcQef72HO"
+        BUILD_NUMBERS = env.BUILD_NUMBER
+        GIT_COMMIT = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+    }
+
+    stages {
+        stage("Initiate Release") {
+            steps {
+                script {
+                    // Check CR is not null
+                    if (!params.CR_NUMBER) {
+                        throw new Exception("CR Number is mandatory")
+                    }
+
+                    // Get and write deployment details to txt
+                    def deployDetails = []
+                    
+                    if (params.Deploy_Aggregate_api) {
+                        deployDetails.add("aggregate-api ${params.Aggregate_api_IMAGE_TAG}")
+                    }
+                    
+                    if (params.Deploy_Filenet_api) {
+                        deployDetails.add("filenet-api ${params.Filenet_api_IMAGE_TAG}")
+                    }
+                    
+                    if (params.Deploy_Arc_api) {
+                        deployDetails.add("arc-api ${params.Arc_api_IMAGE_TAG}")
+                    }
+                    
+                    if (params.Deploy_Seekerui) {
+                        deployDetails.add("seekerui ${params.Seekerui_IMAGE_TAG}")
+                    }
+
+                    if (deployDetails) {
+                        writeFile file: '/tmp/deploy_images.txt', text: deployDetails.join("\n")
+                    } else {
+                        echo "No deployments selected."
+                    }
+                }
+            }
+        }
+        
+        // Other stages like Git checkout, build, etc.
+    }
+}
