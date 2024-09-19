@@ -1,0 +1,75 @@
+#!/bin/bash
+
+set -e
+
+# Variables
+NEXUS_REPO='nexus3.systems.uk.hsbc:18080/hsbc-12514600-fdscshk-dev'
+GCP_CONTAINER_REGISTRY='asia-docker.pkg.dev/hsbc-12514600-fdscshk-dev/fdscs'
+TAG_NAME='1.1'  # Example tag, this can be changed or made dynamic
+PROJECT_NAME='FISIS'
+DESCRIPTION='This is a Springboot application'
+BUILT_BY='Jenkins'
+NEXUS_SERVICE_URL='https://nexus3.systems.uk.hsbc:8081/nexus/service/rest/v1'
+SERVICE_ACCOUNT_USERNAME='your-service-account-username'
+SERVICE_ACCOUNT_PASSWORD='your-service-account-password'
+
+# Image names
+declare -a APIS=("aggregate-api" "filenet-api" "arc-api" "seekerui")
+
+# Create Tag in Nexus
+echo "Creating tag $TAG_NAME in Nexus..."
+curl -u $SERVICE_ACCOUNT_USERNAME:$SERVICE_ACCOUNT_PASSWORD -X POST -H 'Content-Type: application/json' \
+  -d '{
+        "name": "'$TAG_NAME'",
+        "attributes": {
+          "project-name": "'$PROJECT_NAME'",
+          "description": "'$DESCRIPTION'",
+          "built-by": "'$BUILT_BY'"
+        }
+      }' \
+  $NEXUS_SERVICE_URL/tags
+
+# Get Tag Information (for verification)
+echo "Fetching tag information for $TAG_NAME..."
+curl -u $SERVICE_ACCOUNT_USERNAME:$SERVICE_ACCOUNT_PASSWORD -X GET \
+  "$NEXUS_SERVICE_URL/tags/$TAG_NAME"
+
+# Associate Components with Tag in Nexus
+for API_NAME in "${APIS[@]}"; do
+  echo "Associating $API_NAME with tag $TAG_NAME in Nexus..."
+  curl -u $SERVICE_ACCOUNT_USERNAME:$SERVICE_ACCOUNT_PASSWORD -X POST -H 'Content-Type: application/json' \
+    -d '{
+          "tag": "'$TAG_NAME'",
+          "repository": "docker-hsbc-internal-dev",
+          "name": "'$API_NAME'",
+          "group": "hsbc-12514600-fdscshk-dev"
+        }' \
+    "$NEXUS_SERVICE_URL/tags/associate"
+
+  sleep 2  # Small sleep to avoid overloading Nexus API
+done
+
+# Promote Docker images from DEV to BAT in Nexus
+echo "Promoting images from DEV to BAT in Nexus..."
+curl -u $SERVICE_ACCOUNT_USERNAME:$SERVICE_ACCOUNT_PASSWORD -X POST \
+  "$NEXUS_SERVICE_URL/staging/move/docker-hsbc-internal-uat?n3p?tag=$TAG_NAME&name=hsbc-12514600-fdscshk-dev"
+
+sleep 120  # Wait for promotion to complete
+
+# Pull images from Nexus and push to GCP Artifact Registry
+for API_NAME in "${APIS[@]}"; do
+  IMAGE_TAG="$API_NAME:$TAG_NAME"
+  NEXUS_IMAGE="$NEXUS_REPO/$IMAGE_TAG"
+  GCP_IMAGE="$GCP_CONTAINER_REGISTRY/$IMAGE_TAG"
+
+  echo "Pulling image $NEXUS_IMAGE from Nexus..."
+  docker pull "$NEXUS_IMAGE"
+
+  echo "Tagging image for GCP Artifact Registry..."
+  docker tag "$NEXUS_IMAGE" "$GCP_IMAGE"
+
+  echo "Pushing image $GCP_IMAGE to GCP Artifact Registry..."
+  docker push "$GCP_IMAGE"
+done
+
+echo "Image promotion completed successfully."
