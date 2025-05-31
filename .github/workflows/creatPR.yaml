@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Create Pull Request
         id: create_pr
-        uses: vsoch/pull-request@1.1.0
+        uses: vsoch/pull-request-action@1.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PASS_ON_ERROR: true
