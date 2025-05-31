@@ -1,4 +1,4 @@
-name: Create PR on Push
+name: "CodeQL Advanced"
 
 on:
   push:
@@ -15,3 +15,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          branch: ${{ github.ref_name }}
+          title: "Automated PR for branch ${{ github.ref_name }}"
+          body: "This pull request was automatically created for branch ${{ github.ref_name }}."
