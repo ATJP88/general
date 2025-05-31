@@ -3,7 +3,6 @@ name: "Create PR"
 on:
   push:
     branches:
-      - main
       - feature/*
       - release/*
       - chore/*
@@ -13,16 +12,27 @@ jobs:
   create-pull-request:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Explicitly grant write permissions to GITHUB_TOKEN
+      contents: write
       pull-requests: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug Token Presence
+        run: |
+          if [ -z "${{ secrets.PERSONAL_ACCESS_TOKEN }}" ]; then
+            echo "PERSONAL_ACCESS_TOKEN is missing"
+            exit 1
+          else
+            echo "PERSONAL_ACCESS_TOKEN is present"
+          fi
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           base: main
           branch: ${{ github.ref_name }}
           title: "Automated PR for branch ${{ github.ref_name }}"
           body: "This pull request was automatically created for branch ${{ github.ref_name }}."
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
