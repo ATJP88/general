@@ -9,7 +9,7 @@
                     <image>azul/zulu-openjdk:17-ubuntu</image>
                 </from>
                 <to>
-                    <image>my-azul-java-node-app</image>
+                    <image>my-azul-java-node-app</imag>
                 </to>
                 <containerizingMode>packaged</containerizingMode>
                 <extraDirectories>
