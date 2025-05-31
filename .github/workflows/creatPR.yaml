@@ -12,6 +12,8 @@ on:
 jobs:
   create-pull-request:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Explicitly grant write permissions to GITHUB_TOKEN
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,3 +24,4 @@ jobs:
           branch: ${{ github.ref_name }}
           title: "Automated PR for branch ${{ github.ref_name }}"
           body: "This pull request was automatically created for branch ${{ github.ref_name }}."
+          token: ${{ secrets.GITHUB_TOKEN }}
