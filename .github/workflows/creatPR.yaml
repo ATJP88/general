@@ -3,6 +3,7 @@ name: "Create PR"
 on:
   push:
     branches:
+      - main
       - feature/*
       - release/*
       - chore/*
@@ -12,27 +13,21 @@ jobs:
   create-pull-request:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
-
+      contents: write # Explicitly grant write permissions to GITHUB_TOKEN
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Debug Token Presence
-        run: |
-          if [ -z "${{ secrets.PERSONAL_ACCESS_TOKEN }}" ]; then
-            echo "PERSONAL_ACCESS_TOKEN is missing"
-            exit 1
-          else
-            echo "PERSONAL_ACCESS_TOKEN is present"
-          fi
-
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          base: main
-          branch: ${{ github.ref_name }}
-          title: "Automated PR for branch ${{ github.ref_name }}"
-          body: "This pull request was automatically created for branch ${{ github.ref_name }}."
+        id: create_pr
+        uses: vsoch/pull-request@1.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PASS_ON_ERROR: true
+          PULL_REQUEST_UPDATE: true
+          PULL_REQUEST_TITLE: Merge ${{ steps.extract_branch.outputs.branch_name }} into master
+          PULL_REQUEST_BODY: |
+            This PR was automatically created by the GitHub Actions workflow.
+            It merges changes from branch `${{ steps.extract_branch.outputs.branch_name }}` into `main`.
+          PULL_REQUEST_BASE: main
+          PULL_REQUEST_ASSIGNEES: ${{ github.actor }}
+          PULL_REQUEST_DRAFT: true
