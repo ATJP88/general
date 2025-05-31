@@ -1,0 +1,17 @@
+name: Create PR on Push
+
+on:
+  push:
+    branches:
+      - main
+      - feature/*
+      - release/*
+      - chore/*
+      - feat/*
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
