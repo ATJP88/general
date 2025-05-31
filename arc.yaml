@@ -1,5 +1,5 @@
 secret
-kubectl create secret generic arc-certificates --from-file=ca.crt=path/to/ca.crt --from-file=arcapi.jks=path/to/arcapi.jks
+kubectl create secret generic arc-certificates --from-file=ca.crt=path/to/ca.crt --from-file=arcapi.jks=path/to/arcapi.jks.
 
 
 
