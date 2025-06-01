@@ -31,3 +31,18 @@ jobs:
           PULL_REQUEST_BASE: main
           PULL_REQUEST_ASSIGNEES: ${{ github.actor }}
           PULL_REQUEST_DRAFT: true
+
+          - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0.4.0'
+        with:
+          workload_identity_provider: 'principal://iam.googleapis.com/projects/437999125992/locations/global/workloadIdentityPools/github-identity-pool/subject/SUBJECT_ATTRIBUTE_VALUE'
+          service_account: 'sa-git-hub@sharp-agent-457306-d5.iam.gserviceaccount.com'
+      - id: get-gke-credentials
+        uses: google-github-actions/get-gke-credentials@v0.4.0
+        with:
+          cluster_name: cluster-1
+          location: us-central1-c
+      
+      - id: get-pods
+        run: kubectl get pods
