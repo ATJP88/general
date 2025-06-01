@@ -42,8 +42,8 @@ jobs:
       - id: get-gke-credentials
         uses: google-github-actions/get-gke-credentials@v0.4.0
         with:
-          cluster_name: cluster-1
-          location: us-central1-c
+          cluster_name: 'cluster-1'
+          location: 'us-central1-c'
       
       - id: get-pods
         run: kubectl get pods
