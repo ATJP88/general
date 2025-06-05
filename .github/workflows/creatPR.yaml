@@ -23,7 +23,7 @@ jobs:
         id: create_pr
         uses: vsoch/pull-request-action@1.1.0
         env:
-          GITHUB_TOKEN: ${{ secrets.OWNER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.OWNER_TOKE }}
           PASS_ON_ERROR: true
           PULL_REQUEST_UPDATE: true
           PULL_REQUEST_TITLE: Merge ${{ steps.extract_branch.outputs.branch_name }} into master
