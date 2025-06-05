@@ -49,11 +49,14 @@ jobs:
         with:
           workload_identity_provider: 'projects/437999125992/locations/global/workloadIdentityPools/github-identity-pool/providers/github'
           service_account: 'sa-git-hub@sharp-agent-457306-d5.iam.gserviceaccount.com'
-      - id: get-gke-credentials
+
+      - name: 'Authenticate to GKE'
+        id: get-gke-credentials
         uses: google-github-actions/get-gke-credentials@v0.4.0
         with:
           cluster_name: 'cluster-1'
           location: 'us-central1-c'
       
-      - id: get-pods
-        run: kubectl get pods
+      - name: 'Get Pods from Default Namespace'
+        id: get-pods
+        run: kubectl get pods -o wide
