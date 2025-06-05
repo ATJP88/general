@@ -1,4 +1,4 @@
-name: "Create PR"
+name: "Create PR and Authenticate to GKE"
 
 on:
   push:
