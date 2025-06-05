@@ -8,6 +8,7 @@ on:
       - release/*
       - chore/*
       - feat/*
+  workflow_dispatch:
 
 jobs:
   create-pull-request:
