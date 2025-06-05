@@ -33,7 +33,16 @@ jobs:
           PULL_REQUEST_BASE: main
           PULL_REQUEST_ASSIGNEES: ${{ github.actor }}
           PULL_REQUEST_DRAFT: true
-
+    
+  gcp-authentication:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    needs: create-pull-request
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v0.4.0'
