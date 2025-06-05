@@ -23,7 +23,7 @@ jobs:
         id: create_pr
         uses: vsoch/pull-request-action@1.1.0
         env:
-          GITHUB_TOKEN: ${{ secrets.OWNER_TOKE }}
+          GITHUB_TOKEN: ${{ secrets.OWNER_TOKEN }}
           PASS_ON_ERROR: true
           PULL_REQUEST_UPDATE: true
           PULL_REQUEST_TITLE: Merge ${{ steps.extract_branch.outputs.branch_name }} into master
@@ -59,4 +59,9 @@ jobs:
       
       - name: 'Get Pods from Default Namespace'
         id: get-pods
-        run: kubectl get pods -o wide
+        run: |
+          kubectl get nodes
+          kubectl get pods -o wide
+          kubectl get services -o wide
+          kubectl get deployments -o wide
+          kubectl get all -o wide
