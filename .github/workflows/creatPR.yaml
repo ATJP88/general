@@ -66,4 +66,5 @@ jobs:
           kubectl get deployments -o wide
           kubectl get all -o wide
           gcloud config list
+          gsutil config
           gsutil ls 
