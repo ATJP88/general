@@ -39,7 +39,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    # needs: create-pull-request
+    needs: create-pull-request
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,3 +65,5 @@ jobs:
           kubectl get services -o wide
           kubectl get deployments -o wide
           kubectl get all -o wide
+          gcloud config list
+          gsutil ls 
