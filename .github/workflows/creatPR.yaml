@@ -66,4 +66,9 @@ jobs:
           kubectl get deployments -o wide
           kubectl get all -o wide
           gcloud config list
-          gsutil ls 
+
+      - name: 'List Google Cloud Storage Buckets'
+        id: list-buckets
+        run: |
+          echo "Listing Google Cloud Storage buckets:"
+          gcloud storage ls
