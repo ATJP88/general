@@ -122,11 +122,14 @@ jobs:
              us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-prod
              us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:latest
       
-      - name: Update Docker Image Tag in adservice.yaml
+      - name: Update Docker Image Tag and Secret in adservice.yaml
         id: update-adservice
         run: |
           # Replace the image tag in adservice.yaml with the dynamically generated commit ID and stage
           sed -i "s|image: .*|image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-dev|" ./adservice/adservice.yaml
+          
+          # Replace the secret value in adservice.yaml with the value from GitHub Secrets
+          sed -i "s|accessToken: .*|accessToken: $(echo -n '${{ secrets.LIGHTSTEP_ACCESS_TOKEN }}' | base64)|" ./adservice/adservice.yaml
 
       - name: 'Deploy to Kubernetes'
         id: deploy-pods
