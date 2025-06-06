@@ -74,18 +74,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v0.4.0
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0.4.0'
         with:
           token_format: access_token
           workload_identity_provider: 'projects/437999125992/locations/global/workloadIdentityPools/github-identity-pool/providers/github'
           service_account: 'sa-git-hub@sharp-agent-457306-d5.iam.gserviceaccount.com'
 
-      - name: Authenticate to GKE
+      - name: 'Authenticate to GKE'
+        id: get-gke-credentials
         uses: google-github-actions/get-gke-credentials@v0.4.0
         with:
           cluster_name: 'cluster-1'
           location: 'us-central1-c'
+      
+
+
+      - name: 'List Google Cloud Storage Buckets'
+        id: list-buckets
+        run: |
+          echo "Listing Google Cloud Storage buckets:"
+          gcloud storage ls
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v1
@@ -93,6 +103,40 @@ jobs:
           registry: us-central1-docker.pkg.dev
           username: oauth2accesstoken
           password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Get tag
+        id: get-tag
+        run: |
+          # Extract the short commit ID from GITHUB_SHA
+          echo ::set-output name=commit_id::${GITHUB_SHA::7}
+
+      # - id: docker-push-tagged
+      #   name: Tag Docker image and push to Google Artifact Registry
+      #   uses: docker/build-push-action@v2
+      #   with:
+      #     push: true
+      #     context: ./adservice # Specify the directory containing the Dockerfile
+      #     file: ./adservice/Dockerfile # Specify the exact path to the Dockerfile
+      #     tags: |
+      #        us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-dev
+      #        us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-prod
+      #        us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:latest
+      
+      # - name: Update Docker Image Tag and Secret in adservice.yaml
+      #   id: update-adservice
+      #   run: |
+      #     # Replace the image tag in adservice.yaml with the dynamically generated commit ID and stage
+      #     sed -i "s|image: .*|image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-dev|" ./adservice/adservice.yaml
+          
+      #     # Replace the secret value in adservice.yaml with the value from GitHub Secrets
+      #     sed -i "s|accessToken: .*|accessToken: $(echo -n '${{ secrets.LIGHTSTEP_ACCESS_TOKEN }}' | base64)|" ./adservice/adservice.yaml
+
+      # - name: 'Deploy to Kubernetes'
+      #   id: deploy-pods
+      #   run: |
+      #     kubectl apply -f ./adservice/adservice.yaml
+      #     sleep 30
+      #     kubectl get pods -o wide
 
       - name: Loop through microservices
         run: |
