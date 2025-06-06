@@ -48,12 +48,12 @@ jobs:
         language: [java-kotlin]
 
     # Specify the container in which actions will run
-    # container:
-    #   image: codeql-container:f0f91db
+    container:
+      image: codeql-container:f0f91db
 
-    # steps:
-    #   - name: Checkout repository
-    #     uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
     #   - name: Initialize CodeQL
     #     uses: github/codeql-action/init@v3
     #     with:
