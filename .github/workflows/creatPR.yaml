@@ -92,7 +92,7 @@ jobs:
         with:
           registry: us-central1-docker.pkg.dev
           username: oauth2accesstoken
-          password: ${{ secrets.GCP_ACCESS_TOKEN }}
+          password: ${{ steps.auth.outputs.access_token }}
 
       - name: Loop through microservices
         run: |
