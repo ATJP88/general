@@ -86,7 +86,7 @@ jobs:
         id: get-gke-credentials
         uses: google-github-actions/get-gke-credentials@v0.4.0
         with:
-          cluster_name: 'cluster-1'
+          cluster_name: 'cluster-2'
           location: 'us-central1-c'
       
 
