@@ -1,4 +1,4 @@
-name: "Create PR and Authenticate to GKE"
+name: "CI Workflow for Microservices"
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
   create-pull-request:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Explicitly grant write permissions to GITHUB_TOKEN
+      contents: write
       id-token: write
     steps:
       - name: Checkout code
@@ -26,76 +26,30 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.OWNER_TOKEN }}
           PASS_ON_ERROR: true
           PULL_REQUEST_UPDATE: true
-          PULL_REQUEST_TITLE: Merge ${{ steps.extract_branch.outputs.branch_name }} into master
+          PULL_REQUEST_TITLE: Merge ${{ github.ref_name }} into master
           PULL_REQUEST_BODY: |
             This PR was automatically created by the GitHub Actions workflow.
-            It merges changes from branch `${{ steps.extract_branch.outputs.branch_name }}` into `main`.
+            It merges changes from branch `${{ github.ref_name }}` into `main`.
           PULL_REQUEST_BASE: main
           PULL_REQUEST_ASSIGNEES: ${{ github.actor }}
           PULL_REQUEST_DRAFT: true
 
-  Code-QL-analyze:
-    name: Code-Analyze
-    runs-on: ubuntu-latest
-    needs: create-pull-request
-    permissions:
-      security-events: write
-      actions: read
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [java-kotlin]
-
-    # Specify the container in which actions will run
-    container:
-      image: codeql-container:f0f91db
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-    #   - name: Initialize CodeQL
-    #     uses: github/codeql-action/init@v3
-    #     with:
-    #       languages: ${{ matrix.language }}
-    #   - name: Build
-    #     run: |
-    #       ./configure
-    #       make
-    #   - name: Perform CodeQL Analysis
-    #     uses: github/codeql-action/analyze@v3
-    
-  gcp-authentication:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       id-token: write
-      contents: read
-    needs: create-pull-request
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v0.4.0'
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v0.4.0
         with:
           token_format: access_token
           workload_identity_provider: 'projects/437999125992/locations/global/workloadIdentityPools/github-identity-pool/providers/github'
           service_account: 'sa-git-hub@sharp-agent-457306-d5.iam.gserviceaccount.com'
-
-      - name: 'Authenticate to GKE'
-        id: get-gke-credentials
-        uses: google-github-actions/get-gke-credentials@v0.4.0
-        with:
-          cluster_name: 'cluster-2'
-          location: 'us-central1-c'
-      
-
-
-      - name: 'List Google Cloud Storage Buckets'
-        id: list-buckets
-        run: |
-          echo "Listing Google Cloud Storage buckets:"
-          gcloud storage ls
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v1
@@ -104,53 +58,24 @@ jobs:
           username: oauth2accesstoken
           password: ${{ steps.auth.outputs.access_token }}
 
-      - name: Get tag
+      - name: Get short commit ID
         id: get-tag
         run: |
-          # Extract the short commit ID from GITHUB_SHA
-          echo ::set-output name=commit_id::${GITHUB_SHA::7}
+          echo "commit_id=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      # - id: docker-push-tagged
-      #   name: Tag Docker image and push to Google Artifact Registry
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     push: true
-      #     context: ./adservice # Specify the directory containing the Dockerfile
-      #     file: ./adservice/Dockerfile # Specify the exact path to the Dockerfile
-      #     tags: |
-      #        us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-dev
-      #        us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-prod
-      #        us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:latest
-      
-      # - name: Update Docker Image Tag and Secret in adservice.yaml
-      #   id: update-adservice
-      #   run: |
-      #     # Replace the image tag in adservice.yaml with the dynamically generated commit ID and stage
-      #     sed -i "s|image: .*|image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/app:${{ steps.get-tag.outputs.commit_id }}-dev|" ./adservice/adservice.yaml
-          
-      #     # Replace the secret value in adservice.yaml with the value from GitHub Secrets
-      #     sed -i "s|accessToken: .*|accessToken: $(echo -n '${{ secrets.LIGHTSTEP_ACCESS_TOKEN }}' | base64)|" ./adservice/adservice.yaml
-
-      # - name: 'Deploy to Kubernetes'
-      #   id: deploy-pods
-      #   run: |
-      #     kubectl apply -f ./adservice/adservice.yaml
-      #     sleep 30
-      #     kubectl get pods -o wide
+      - name: Check for changes in source code
+        id: check-changes
+        run: |
+          git diff --quiet HEAD^ HEAD ./src || echo "changes_detected=true" >> $GITHUB_ENV
 
       - name: Loop through microservices
+        if: env.changes_detected == 'true'
         run: |
           for service in adservice cartservice checkoutservice currencyservice emailservice frontend loadgenerator paymentservice productcatalogservice recommendationservice shippingservice; do
-            # Check for changes in the service directory
-            # git diff --quiet HEAD^ -- ./$service || echo "changes_detected=true" >> $GITHUB_ENV
+            # Build and push Docker image
+            docker build -t us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ env.commit_id }} ./$service
+            docker push us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ env.commit_id }}
             
-            # if [ "$changes_detected" == "true" ]; then
-              # Build and push Docker image
-              docker build -t us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ github.sha }} ./$service
-              docker push us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ github.sha }}
-              
-              # Update Kubernetes deployment
-              sed -i "s|image: .*|image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ github.sha }}|" ./k8s/$service.yaml
-              kubectl apply -f ./k8s/$service.yaml
-            # fi
+            # Update Kubernetes manifest
+            sed -i "s|image: .*|image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ env.commit_id }}|" ./k8s/$service.yaml
           done

@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: checkoutservice
+          image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/checkoutservice:${{ env.commit_id }}
           ports:
           - containerPort: 5050
           readinessProbe:

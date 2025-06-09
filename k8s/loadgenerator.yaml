@@ -52,7 +52,7 @@ spec:
           value: "frontend:80"
       containers:
       - name: main
-        image: loadgenerator
+        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/loadgenerator:${{ env.commit_id }}
         env:
         - name: FRONTEND_ADDR
           value: "frontend:80"
