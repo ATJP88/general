@@ -79,3 +79,12 @@ jobs:
             # Update Kubernetes manifest
             sed -i "s|image: .*|image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ env.commit_id }}|" ./k8s/$service.yaml
           done
+
+      - name: Commit and push updated manifests
+        if: env.changes_detected == 'true'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add ./k8s/*.yaml
+          git commit -m "Update Kubernetes manifests with new image tags"
+          git push origin ${{ github.ref_name }}
