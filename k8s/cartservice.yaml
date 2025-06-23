@@ -28,11 +28,11 @@ spec:
       terminationGracePeriodSeconds: 5
       initContainers:
         - name: init-wait-for-redis
-          image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/cartservice:54154ae
+          image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/cartservice:57ece06
           command: ["/bin/sh", "-c", "for i in $(seq 1 300); do nc -zvw1 redis-cart 6379 && exit 0 || sleep 3; done; exit 1"]
       containers:
       - name: server
-        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/cartservice:54154ae
+        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/cartservice:57ece06
         ports:
         - containerPort: 7070
         envFrom:

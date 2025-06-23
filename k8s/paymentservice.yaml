@@ -28,7 +28,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/paymentservice:54154ae
+        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/paymentservice:57ece06
         ports:
         - containerPort: 50051
         envFrom:
