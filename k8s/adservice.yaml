@@ -28,10 +28,10 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
         - name: server
-          image: adservice:latest 
+          image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/adservice:f453811
           imagePullPolicy: Never
           
-          # image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/adservice:57ece06
+          # image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/adservice:f453811
           ports:
             - containerPort: 9555
           env:

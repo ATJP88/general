@@ -28,7 +28,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: recommendationservice:local
+        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/recommendationservice:f453811
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
