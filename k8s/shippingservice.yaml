@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/shippingservice:8fa7598
+          image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/shippingservice:0257cb0
           imagePullPolicy: Never
           ports:
             - containerPort: 50051
