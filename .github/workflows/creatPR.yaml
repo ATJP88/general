@@ -85,11 +85,11 @@ jobs:
         run: |
           for service in adservice cartservice checkoutservice currencyservice emailservice frontend loadgenerator paymentservice productcatalogservice recommendationservice shippingservice; do
             # Build and push Docker image
-            docker build -t us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ env.commit_id }} ./$service
-            docker push us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ env.commit_id }}
+            docker build -t us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/$service:${{ env.commit_id }} ./$service
+            docker push us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/$service:${{ env.commit_id }}
             
             # Update Kubernetes manifest
-            sed -i "s|image: .*|image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/$service:${{ env.commit_id }}|" ./k8s/$service.yaml
+            sed -i "s|image: .*|image: us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/$service:${{ env.commit_id }}|" ./k8s/$service.yaml
           done
 
       - name: Commit and push updated manifests
