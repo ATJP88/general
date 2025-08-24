@@ -28,7 +28,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/currencyservice:c8e5ad0
+        image: us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/currencyservice:39d2e4a
         imagePullPolicy: Never
         ports:
         - name: grpc
