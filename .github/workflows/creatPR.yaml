@@ -20,16 +20,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: SSH into GCP VM and Deploy
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.GCP_VM_IP }}
-          username: ${{ secrets.GCP_VM_USER }}
-          key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
-          script: |
-            echo "🔹 Connected to VM!"
-            kubectl get nodes      
+        uses: actions/checkout@v4   
       - name: Create Pull Request
         id: create_pr
         uses: vsoch/pull-request-action@1.1.0
@@ -62,14 +53,15 @@ jobs:
           script: |
             echo "🔹 Connected to VM!"
             kubectl get nodes
+            kubectl get po
 
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v0.4.0
         with:
           token_format: access_token
-          workload_identity_provider: 'projects/437999125992/locations/global/workloadIdentityPools/github-identity-pool/providers/github'
-          service_account: 'sa-git-hub@sharp-agent-457306-d5.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/327406114637/locations/global/workloadIdentityPools/github-identity-pool/providers/github'
+          service_account: 'sa-git-hub@careful-acumen-466410-f0.iam.gserviceaccount.com'
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v1
