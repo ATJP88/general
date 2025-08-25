@@ -139,24 +139,9 @@ jobs:
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           script: |
             echo "🔹 Connected to VM!"
-            kubectl get po
-      - name: Deploy all Kubernetes YAML files
-        run: |
-          for yaml in k8s/*.yaml; do
-            if [ -f "$yaml" ]; then
+            cd ~/general/k8s
+            for yaml in *.yaml; do
               echo "Applying $yaml ..."
-              kubectl apply -f "$yaml" --validate=false
-            fi
-          done
-          for dir in k8s/*/; do
-            if [ -d "$dir" ]; then
-              for yaml in "$dir"*.yaml; do
-                if [ -f "$yaml" ]; then
-                  echo "Applying $yaml ..."
-                  kubectl apply -f "$yaml" --validate=false
-                fi
-              done
-            fi
-          done
-
+              kubectl apply -f $yaml
+            done
 
