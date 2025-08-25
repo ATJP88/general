@@ -109,3 +109,40 @@ jobs:
 
           # Update deployment manifest for this service
           sed -i "s|image: .*|image: $IMAGE_URI|" ./k8s/${{ matrix.service }}.yaml
+
+  app-deployment:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: SSH into GCP VM and Deploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.GCP_VM_IP }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+          script: |
+            echo "🔹 Connected to VM!"
+            kubectl get nodes   
+
+      - name: Deploy to GKE
+        run: |
+          IMAGE_URI=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/frontend:${{ env.commit_id }}
+          
+          echo "🚀 Deploying frontend with image $IMAGE_URI"
+          sed -i "s|image: .*|image: $IMAGE_URI|" ./k8s/frontend.yaml
+
+          gcloud container clusters get-credentials hipster-cluster --region ${{ env.REGION }} --project ${{ env.PROJECT_ID }}
+          kubectl apply -f ./k8s/
+
+          sleep 30  # wait for pods to start
+
+          kubectl get pods
+          kubectl get services
+
