@@ -140,8 +140,14 @@ jobs:
           script: |
             echo "🔹 Connected to VM!"
             cd ~/general/k8s
+            kubectl apply -f lightstep-configmap.yaml
+            kubectl apply -f k8s-service-account.yaml
+            kubectl apply -f otel-collector.yaml
+            kubectl apply -f redis.yaml
             for yaml in *.yaml; do
-              echo "Applying $yaml ..."
-              kubectl apply -f $yaml
+              if [[ "$yaml" != "lightstep-configmap.yaml" && "$yaml" != "k8s-service-account.yaml" && "$yaml" != "otel-collector.yaml" && "$yaml" != "redis.yaml" ]]; then
+                echo "Applying $yaml ..."
+                kubectl apply -f $yaml
+              fi
             done
 
