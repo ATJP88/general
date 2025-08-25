@@ -30,6 +30,15 @@ jobs:
           distribution: temurin
           java-version: 11   # Use 11 (not 8), compatible with Gradle plugins
 
+      - name: Upgrade Gradle Wrapper (adservice)
+        run: |
+          if [ -f "adservice/gradlew" ]; then
+            cd adservice
+            chmod +x gradlew
+            ./gradlew wrapper --gradle-version 6.9
+            cd ..
+          fi
+
       - name: Format Java code (adservice)
         run: |
           if [ -f "adservice/build.gradle" ] || [ -f "adservice/gradlew" ]; then
