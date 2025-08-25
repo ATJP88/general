@@ -29,9 +29,9 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.projectKey=${{ matrix.service }}
-            -Dsonar.projectName=${{ matrix.service }}
-            -Dsonar.sources=./${{ matrix.service }}          
+            -Dsonar.projectKey=hipster
+            -Dsonar.projectName=hipster
+            -Dsonar.sources=.       
       # If you wish to fail your job when the Quality Gate is red, uncomment the
       # following lines. This would typically be used to fail a deployment.
       # - uses: sonarsource/sonarqube-quality-gate-action@master
