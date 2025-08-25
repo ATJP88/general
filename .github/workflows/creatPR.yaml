@@ -10,93 +10,63 @@ on:
       - feat/*
   workflow_dispatch:
 
-jobs:
-  create-pull-request:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Checkout code
-        uses: actions/checkout@v4   
-      - name: Create Pull Request
-        id: create_pr
-        uses: vsoch/pull-request-action@1.1.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.OWNER_TOKEN }}
-          PASS_ON_ERROR: true
-          PULL_REQUEST_UPDATE: true
-          PULL_REQUEST_TITLE: Merge ${{ github.ref_name }} into master
-          PULL_REQUEST_BODY: |
-            This PR was automatically created by the GitHub Actions workflow.
-            It merges changes from branch `${{ github.ref_name }}` into `main`.
-          PULL_REQUEST_BASE: main
-          PULL_REQUEST_ASSIGNEES: ${{ github.actor }}
-          PULL_REQUEST_DRAFT: true
+env:  # non-sensitive repo configs
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  REPO_NAME: ${{ vars.GCP_REPO_NAME }}
 
+jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
+
+    strategy:
+      matrix:
+        service: 
+          - adservice
+          - cartservice
+          - checkoutservice
+          - currencyservice
+          - emailservice
+          - frontend
+          - loadgenerator
+          - paymentservice
+          - productcatalogservice
+          - recommendationservice
+          - shippingservice
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: SSH into GCP VM and Deploy
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.GCP_VM_IP }}
-          username: ${{ secrets.GCP_VM_USER }}
-          key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
-          script: |
-            echo "🔹 Connected to VM!"
-            kubectl get nodes
-            kubectl get po
 
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v0.4.0
         with:
           token_format: access_token
-          workload_identity_provider: 'projects/327406114637/locations/global/workloadIdentityPools/github-identity-pool/providers/github'
-          service_account: 'sa-git-hub@careful-acumen-466410-f0.iam.gserviceaccount.com'
+          workload_identity_provider: ${{ secrets.GCP_WI_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v1
         with:
-          registry: us-central1-docker.pkg.dev
+          registry: ${{ env.REGION }}-docker.pkg.dev
           username: oauth2accesstoken
           password: ${{ steps.auth.outputs.access_token }}
 
       - name: Get short commit ID
         id: get-tag
-        run: |
-          echo "commit_id=${GITHUB_SHA::7}" >> $GITHUB_ENV
+        run: echo "commit_id=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - name: Check for changes in source code
-        id: check-changes
+      - name: Build and Push ${{ matrix.service }}
         run: |
-          git diff --quiet HEAD^ HEAD ./src || echo "changes_detected=true" >> $GITHUB_ENV
+          IMAGE_URI=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ matrix.service }}:${{ env.commit_id }}
 
-      - name: Loop through microservices
-        if: env.changes_detected == 'true'
-        run: |
-          for service in adservice cartservice checkoutservice currencyservice emailservice frontend loadgenerator paymentservice productcatalogservice recommendationservice shippingservice; do
-            # Build and push Docker image
-            docker build -t us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/$service:${{ env.commit_id }} ./$service
-            docker push us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/$service:${{ env.commit_id }}
-            
-            # Update Kubernetes manifest
-            sed -i "s|image: .*|image: us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/$service:${{ env.commit_id }}|" ./k8s/$service.yaml
-          done
+          echo "🚀 Building $IMAGE_URI"
+          docker build -t $IMAGE_URI ./${{ matrix.service }}
+          docker push $IMAGE_URI
 
-      - name: Commit and push updated manifests
-        if: env.changes_detected == 'true'
-        run: |
-          git config user.name "Hackathon Bot"
-          git config user.email "hackathon-bot@sharp-agent.com"
-          git add ./k8s/*.yaml
-          git commit -m "Update Kubernetes manifests with new image tags"
-          git push origin ${{ github.ref_name }}
+          # Update deployment manifest for this service
+          sed -i "s|image: .*|image: $IMAGE_URI|" ./k8s/${{ matrix.service }}.yaml
