@@ -139,15 +139,6 @@ jobs:
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           script: |
             echo "🔹 Connected to VM!"
-            # Use the correct SSH key for authentication
-            if [ -f "$HOME/.ssh/github_actions_id_rsa" ]; then
-              eval $(ssh-agent -s)
-              ssh-add $HOME/.ssh/github_actions_id_rsa
-            else
-              echo "SSH key not found at $HOME/.ssh/github_actions_id_rsa."
-              exit 1
-            fi
-            # Example SSH command (replace user@vm-host with your actual VM details)
-            ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/github_actions_id_rsa user@vm-host 'kubectl get nodes'
-
+            kubectl get po
+            
 
