@@ -28,7 +28,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/productcatalogservice:39d2e4a
+        image: us-central1-docker.pkg.dev/sharp-agent-457306-d5/hipster/productcatalogservice:0257cb0
         imagePullPolicy: Never
         ports:
         - containerPort: 3550

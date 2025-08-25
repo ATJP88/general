@@ -34,6 +34,7 @@ jobs:
         run: |
           if [ -f "adservice/build.gradle" ] || [ -f "adservice/gradlew" ]; then
             cd adservice
+            chmod +x gradlew
             ./gradlew googleJavaFormat
             cd ..
           fi
@@ -42,7 +43,7 @@ jobs:
         run: |
           if [ -f "adservice/build.gradle" ] || [ -f "adservice/gradlew" ]; then
             cd adservice
-            chmod +x gradlew || true
+            chmod +x gradlew
             ./gradlew build -x test
             cd ..
           elif [ -f "adservice/pom.xml" ]; then
@@ -127,8 +128,8 @@ jobs:
             -Dsonar.projectKey=hipster
             -Dsonar.projectName=hipster
             -Dsonar.sources=.
-            -Dsonar.java.binaries=adservice/build/classes,adservice/target/classes
-            -Dsonar.exclusions=**/lightstep-opentelemetry-javaagent-*.jar
+            -Dsonar.java.binaries=adservice/build/classes/java/main
+            -Dsonar.exclusions=**/lightstep-opentelemetry-javaagent-*.jar,**/node_modules/**,**/vendor/**
       
       # If you wish to fail your job when the Quality Gate is red, uncomment the
       # following lines. This would typically be used to fail a deployment.
