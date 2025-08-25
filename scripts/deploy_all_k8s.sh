@@ -11,6 +11,14 @@ if [ ! -d "$K8S_DIR" ]; then
   exit 1
 fi
 
+# Upgrade Gradle wrapper for adservice to support Java 11+
+if [ -d "../adservice" ]; then
+  echo "Upgrading Gradle wrapper in adservice to 6.9..."
+  cd ../adservice
+  ./gradlew wrapper --gradle-version 6.9 || echo "Gradle wrapper upgrade failed, please check manually."
+  cd -
+fi
+
 # Apply YAMLs in the k8s directory
 for yaml in "$K8S_DIR"/*.yaml; do
   if [ -f "$yaml" ]; then
