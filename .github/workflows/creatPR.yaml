@@ -31,16 +31,11 @@ jobs:
           distribution: temurin
           java-version: 8
 
-      - name: Build Java service (adservice)
+      - name: Format Java code (adservice)
         run: |
           if [ -f "adservice/build.gradle" ] || [ -f "adservice/gradlew" ]; then
             cd adservice
-            chmod +x gradlew || true
-            ./gradlew build -x test
-            cd ..
-          elif [ -f "adservice/pom.xml" ]; then
-            cd adservice
-            mvn clean install -DskipTests
+            ./gradlew googleJavaFormat
             cd ..
           fi
 
