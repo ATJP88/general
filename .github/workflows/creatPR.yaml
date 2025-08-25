@@ -14,6 +14,7 @@ env:  # non-sensitive repo configs
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   REGION: ${{ vars.GCP_REGION }}
   REPO_NAME: ${{ vars.GCP_REPO_NAME }}
+  GCP_VM_IP: ${{ vars.GCP_VM_IP }}
 
 jobs:
   sqscan:
@@ -133,7 +134,7 @@ jobs:
       - name: SSH into GCP VM and Deploy
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.GCP_VM_IP }}
+          host: ${{ env.GCP_VM_IP }}
           username: ${{ secrets.GCP_VM_USER }}
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           script: |
