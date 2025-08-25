@@ -16,7 +16,7 @@ env:  # non-sensitive repo configs
   REPO_NAME: ${{ vars.GCP_REPO_NAME }}
 
 jobs:
-  build:
+  sqscan:
     name: Build
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +34,6 @@ jobs:
       #   env:
       #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
