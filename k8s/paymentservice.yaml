@@ -25,11 +25,13 @@ spec:
       labels:
         app: paymentservice
     spec:
+      imagePullSecrets:
+        - name: gcp-artifact-secret
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
         image: us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/paymentservice:39d2e4a
-        imagePullPolicy: Never
+        imagePullPolicy: Always
         ports:
         - containerPort: 50051
         envFrom:
