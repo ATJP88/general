@@ -24,109 +24,18 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Set up JDK 11 for adservice
+      - name: Set up JDK 11 for productcatalogservice
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 11   # Use 11 (not 8), compatible with Gradle plugins
-
-      - name: Upgrade Gradle Wrapper (adservice)
+          java-version: 11
+      - name: Build Java service (productcatalogservice)
         run: |
-          if [ -f "adservice/gradlew" ]; then
-            cd adservice
-            chmod +x gradlew
-            ./gradlew wrapper --gradle-version 6.9
+          if [ -f "productcatalogservice/go.mod" ]; then
+            cd productcatalogservice
+            go build ./...
             cd ..
           fi
-
-      - name: Format Java code (adservice)
-        run: |
-          if [ -f "adservice/build.gradle" ] || [ -f "adservice/gradlew" ]; then
-            cd adservice
-            chmod +x gradlew
-            ./gradlew googleJavaFormat
-            cd ..
-          fi
-
-      - name: Build Java service (adservice)
-        run: |
-          if [ -f "adservice/build.gradle" ] || [ -f "adservice/gradlew" ]; then
-            cd adservice
-            chmod +x gradlew
-            ./gradlew build -x test
-            cd ..
-          elif [ -f "adservice/pom.xml" ]; then
-            cd adservice
-            mvn clean install -DskipTests
-            cd ..
-          fi
-
-
-      # ---------- Go (frontend, productcatalogservice, shippingservice, checkoutservice) ----------
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-
-      - name: Build Go services
-        run: |
-          for svc in frontend productcatalogservice shippingservice checkoutservice; do
-            if [ -d "$svc" ] && [ -f "$svc/go.mod" ]; then
-              echo "📦 Building Go service: $svc"
-              cd $svc
-              go build ./...
-              cd ..
-            fi
-          done
-
-      # ---------- Node.js (currencyservice, paymentservice) ----------
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Node.js deps
-        run: |
-          for svc in currencyservice paymentservice; do
-            if [ -d "$svc" ] && [ -f "$svc/package.json" ]; then
-              echo "📦 Installing Node.js deps for $svc"
-              cd $svc
-              npm install --ignore-scripts --no-audit
-              cd ..
-            fi
-          done
-
-      # ---------- Python (emailservice, recommendationservice, loadgenerator) ----------
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python deps
-        run: |
-          for svc in emailservice recommendationservice loadgenerator; do
-            if [ -d "$svc" ] && [ -f "$svc/requirements.txt" ]; then
-              echo "📦 Installing Python deps for $svc"
-              pip install -r $svc/requirements.txt || true
-            fi
-          done
-
-      # ---------- C# (cartservice) ----------
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Build C# service (cartservice)
-        run: |
-          if [ -d "cartservice" ] && ls cartservice/*.csproj >/dev/null 2>&1; then
-            cd cartservice
-            dotnet restore
-            dotnet build --no-restore
-            cd ..
-          fi
-
-      # ---------- SonarQube Scan ----------
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
@@ -136,9 +45,8 @@ jobs:
           args: >
             -Dsonar.projectKey=hipster
             -Dsonar.projectName=hipster
-            -Dsonar.sources=.
-            -Dsonar.java.binaries=adservice/build/classes/java/main
-            -Dsonar.exclusions=**/lightstep-opentelemetry-javaagent-*.jar,**/node_modules/**,**/vendor/**
+            -Dsonar.sources=productcatalogservice
+            -Dsonar.exclusions=**/vendor/**
       
       # If you wish to fail your job when the Quality Gate is red, uncomment the
       # following lines. This would typically be used to fail a deployment.
