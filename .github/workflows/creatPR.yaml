@@ -109,3 +109,12 @@ jobs:
 
           # Update deployment manifest for this service
           sed -i "s|image: .*|image: $IMAGE_URI|" ./k8s/${{ matrix.service }}.yaml
+
+      - name: Commit and push updated manifests
+        if: env.changes_detected == 'true'
+        run: |
+          git config user.name "Hackathon Bot"
+          git config user.email "hackathon-bot@sharp-agent.com"
+          git add ./k8s/*.yaml
+          git commit -m "Update Kubernetes manifests with new image tags"
+          git push origin ${{ github.ref_name }}          
