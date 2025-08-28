@@ -25,10 +25,12 @@ spec:
       labels:
         app: currencyservice
     spec:
+      imagePullSecrets:
+        - name: gcp-artifact-secret
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/currencyservice:39d2e4a
+        image: us-central1-docker.pkg.dev/careful-acumen-466410-f0/hipster/currencyservice:latest
         imagePullPolicy: Always
         ports:
         - name: grpc

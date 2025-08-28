@@ -25,6 +25,8 @@ spec:
       labels:
         app: paymentservice
     spec:
+      imagePullSecrets:
+        - name: gcp-artifact-secret
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
